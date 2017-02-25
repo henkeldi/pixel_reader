@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import unittest
 import numpy as np
+import itertools
 
 from gl_utils import OffscreenContext
 
@@ -16,13 +17,16 @@ class Tests(unittest.TestCase):
         self.context.close()
 
     def test_input(self):
-        self.assertRaises(ValueError, pixel_reader.PixelReader, 100, 100, GL_RGB, GL_FLOAT, -1)
-        self.assertRaises(ValueError, pixel_reader.PixelReader, 0, 100, GL_RGB, GL_FLOAT, 1)
-        self.assertRaises(ValueError, pixel_reader.PixelReader, 100, -2, GL_RGB, GL_FLOAT, 1)
-        self.assertRaises(ValueError, pixel_reader.PixelReader, 100, 100, GL_RGB, -13414, 2)
-        self.assertRaises(ValueError, pixel_reader.PixelReader, 100, 100, -2348923, GL_FLOAT, 2)
+        self.assertRaises(ValueError, pixel_reader.PixelReader, 0, 0, 100, 100, GL_RGB, GL_FLOAT, -1)
+        self.assertRaises(ValueError, pixel_reader.PixelReader, 0, 0, 100, GL_RGB, GL_FLOAT, 1)
+        self.assertRaises(ValueError, pixel_reader.PixelReader, 0, 0, 100, -2, GL_RGB, GL_FLOAT, 1)
+        self.assertRaises(ValueError, pixel_reader.PixelReader, 0, 0, 100, 100, GL_RGB, -13414, 2)
+        self.assertRaises(ValueError, pixel_reader.PixelReader, 0, 0, 100, 100, -2348923, GL_FLOAT, 2)
+        self.assertRaises(ValueError, pixel_reader.PixelReader, -2, 0, 100, 100, -2348923, GL_FLOAT, 2)
+        self.assertRaises(ValueError, pixel_reader.PixelReader, 0, -232, 100, 100, -2348923, GL_FLOAT, 2)
+
         try:
-            pixel_reader.PixelReader(100, 100, GL_RGB, GL_FLOAT, 2)
+            pixel_reader.PixelReader(0, 0, 100, 100, GL_RGB, GL_FLOAT)
         except Exception as e:
             self.fail("PixelReader raised Exception: {}".format(e))
 
@@ -53,16 +57,16 @@ class Tests(unittest.TestCase):
                         == GL_FRAMEBUFFER_COMPLETE, 'Framebuffer not complete'
 
         glBindFramebuffer(GL_FRAMEBUFFER, fbo)
-        glClearColor(0.2, 0.4, 0.8, 1.0)
-        glClear(GL_COLOR_BUFFER_BIT| GL_DEPTH_BUFFER_BIT)
         glViewport(0, 0, W, H)
 
         random_colors = np.random.random((N, 4)).astype(np.float32, copy=True)
 
+        glClearColor(0.2, 0.4, 0.8, 1.0)
+        glClear(GL_COLOR_BUFFER_BIT| GL_DEPTH_BUFFER_BIT)
         datatype = GL_FLOAT
         pixel_format = GL_RGB
 
-        reader = pixel_reader.PixelReader(W, H, pixel_format, datatype)
+        reader = pixel_reader.PixelReader(0, 0, W, H, pixel_format, datatype)
         
         gl_read_pixels_out = []
 
@@ -95,6 +99,7 @@ class Tests(unittest.TestCase):
         time_gl = t2 - t1
         time_pixel_reader = t4 - t3
         self.assertTrue( time_pixel_reader < time_gl )
+
 
 if __name__ == '__main__':
     unittest.main()

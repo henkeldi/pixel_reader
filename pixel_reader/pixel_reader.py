@@ -17,8 +17,6 @@ class PixelReader(object):
     }
 
     known_formattypes = [
-        GL_COLOR_INDEX,
-        GL_STENCIL_INDEX,
         GL_DEPTH_COMPONENT,
         GL_RED,
         GL_GREEN,
@@ -58,8 +56,8 @@ class PixelReader(object):
         GL_FLOAT: ctypes.c_float
     } 
 
-    def __init__(self, W, H, pixel_format, datatype, ringbuffer_size=2, max_sync_wait_time=1000000000):
-        self.__check_input_args(W, H, pixel_format, datatype, ringbuffer_size)
+    def __init__(self, x0, y0, W, H, pixel_format, datatype, ringbuffer_size=2, max_sync_wait_time=1000000000):
+        self.__check_input_args(x0, y0, W, H, pixel_format, datatype, ringbuffer_size)
 
         self.__buf_idx = 0
         self.__memory_pointer = []
@@ -78,6 +76,8 @@ class PixelReader(object):
             self.__fences.append(None)
 
         self.__ringbuffer_size = ringbuffer_size
+        self.__x0 = x0
+        self.__y0 = y0
         self.__W = W
         self.__H = H
         self.__datatype = datatype
@@ -86,9 +86,11 @@ class PixelReader(object):
 
         self.__queue = Queue()
 
-    def __check_input_args(self, W, H, pixel_format, datatype, ring_buffer_size):
-        if ring_buffer_size <= 0:
-            raise ValueError('Ringbuffersize must be bigger 0. Is {0}'.format(ring_buffer_size))
+    def __check_input_args(self, x0, y0, W, H, pixel_format, datatype, ring_buffer_size):
+        if x0 < 0:
+            raise ValueError('x0 must be bigger or equal 0. Is {0}'.format(x0))
+        if y0 < 0:
+            raise ValueError('y0 must be bigger or equal 0. Is {0}'.format(y0))
         if W <= 0:
             raise ValueError('Width must be bigger 0. Is {0}'.format(W))
         if H <= 0:
@@ -97,6 +99,8 @@ class PixelReader(object):
             raise ValueError('Unknown Datatype: {0}'.format(datatype))
         if not pixel_format in PixelReader.known_formattypes:
             raise ValueError('Unknown pixel format: {0}'.format(pixel_format))
+        if ring_buffer_size <= 0:
+            raise ValueError('Ringbuffersize must be bigger 0. Is {0}'.format(ring_buffer_size))
 
     def readPixels(self):
         write_buf_idx = self.__buf_idx
@@ -113,7 +117,10 @@ class PixelReader(object):
     def __read_pixels(self, read_buf_idx):
         if self.__fences[read_buf_idx] != None:
             glClientWaitSync(self.__fences[read_buf_idx], GL_SYNC_FLUSH_COMMANDS_BIT, self.__sync_wait_time)
-            pixels = np.ctypeslib.as_array((self.__c_type_format * self.__C*self.__H*self.__W).from_address(self.__memory_pointer[read_buf_idx])).copy()
+            if self.__C == 1:
+                pixels = np.ctypeslib.as_array((self.__c_type_format * self.__H*self.__W).from_address(self.__memory_pointer[read_buf_idx])).copy()
+            else:
+                pixels = np.ctypeslib.as_array((self.__c_type_format * self.__C*self.__H*self.__W).from_address(self.__memory_pointer[read_buf_idx])).copy()
             self.__queue.put(pixels)
             glDeleteSync(self.__fences[read_buf_idx])
             self.__fences[read_buf_idx] = None
