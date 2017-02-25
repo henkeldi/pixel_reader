@@ -1,0 +1,5 @@
+nose
+rednose
+sphinx
+numpy
+pyopengl==3.1.1a1
