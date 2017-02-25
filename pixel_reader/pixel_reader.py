@@ -58,8 +58,8 @@ class PixelReader(object):
         GL_FLOAT: ctypes.c_float
     } 
 
-    def __init__(self, ringbuffer_size, W, H, datatype, pixel_format, max_sync_wait_time=1000000000):
-        self.__check_input_args(ringbuffer_size, W, H, datatype, pixel_format)
+    def __init__(self, W, H, pixel_format, datatype, ringbuffer_size=2, max_sync_wait_time=1000000000):
+        self.__check_input_args(W, H, pixel_format, datatype, ringbuffer_size)
 
         self.__buf_idx = 0
         self.__memory_pointer = []
@@ -86,7 +86,7 @@ class PixelReader(object):
 
         self.__queue = Queue()
 
-    def __check_input_args(self, ring_buffer_size, W, H, datatype, pixel_format):
+    def __check_input_args(self, W, H, pixel_format, datatype, ring_buffer_size):
         if ring_buffer_size <= 0:
             raise ValueError('Ringbuffersize must be bigger 0. Is {0}'.format(ring_buffer_size))
         if W <= 0:
@@ -113,7 +113,7 @@ class PixelReader(object):
     def __read_pixels(self, read_buf_idx):
         if self.__fences[read_buf_idx] != None:
             glClientWaitSync(self.__fences[read_buf_idx], GL_SYNC_FLUSH_COMMANDS_BIT, self.__sync_wait_time)
-            pixels = np.ctypeslib.as_array((self.__c_type_format * self.__C*self.__W*self.__H).from_address(self.__memory_pointer[read_buf_idx])).copy()
+            pixels = np.ctypeslib.as_array((self.__c_type_format * self.__C*self.__H*self.__W).from_address(self.__memory_pointer[read_buf_idx])).copy()
             self.__queue.put(pixels)
             glDeleteSync(self.__fences[read_buf_idx])
             self.__fences[read_buf_idx] = None

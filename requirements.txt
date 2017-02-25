@@ -2,4 +2,5 @@ nose
 rednose
 sphinx
 numpy
+gl-utils
 pyopengl==3.1.1a1
